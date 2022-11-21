@@ -1,9 +1,4 @@
 import numpy as np
-
-#import sys
-#sys.path.insert(0,r"C:\BABU\FAU\FAU coding\exercise1_material\src_to_implement\Layers")
-#sys.path.insert(0, r"C:\BABU\FAU\FAU coding\exercise1_material\src_to_implement\Optimization")
-#from Optimization import Optimizers
 from Layers import Base
 
 class FullyConnected(Base.BaseLayer):

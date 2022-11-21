@@ -1,2 +1,2 @@
 # DL
- Deep Learnin WS2022/23 exercises
+ FAU Deep Learning WS2022/23 exercises

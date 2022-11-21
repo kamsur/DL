@@ -16,12 +16,7 @@ class NeuralNetwork:
             self.input_tensor,self.label_tensor = input_tensor,label_tensor
         prediction_tensor=self.input_tensor
         for layer in self.layers:
-            '''
-            print("input shape=",prediction_tensor.shape)
-            print("weight shape=",layer.weights.shape)
-            print("weight=",layer.weights)'''
             prediction_tensor=layer.forward(prediction_tensor)
-            #print("output shape=",prediction_tensor.shape)
         return self.loss_layer.forward(prediction_tensor,self.label_tensor) 
 
     def backward(self, label_tensor=None):
@@ -36,9 +31,7 @@ class NeuralNetwork:
     def append_layer(self, layer):
         if layer.trainable == True:
             layer.optimizer = copy.deepcopy(self.optimizer)
-        #print("to be appended layer weight=",layer.weights)
         self.layers.append(layer)
-        #print("already appended layer weight=",[x.weights for x in self.layers])
     
     def train(self, iterations):
         for i in range(iterations):

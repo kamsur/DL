@@ -34,7 +34,6 @@ class TestFullyConnected1(unittest.TestCase):
     def test_backward_size(self):
         layer = FullyConnected.FullyConnected(self.input_size, self.output_size)
         output_tensor = layer.forward(self.input_tensor)
-        # print(output_tensor.shape)
         error_tensor = layer.backward(output_tensor)
         self.assertEqual(error_tensor.shape[1], self.input_size)
         self.assertEqual(error_tensor.shape[0], self.batch_size)
