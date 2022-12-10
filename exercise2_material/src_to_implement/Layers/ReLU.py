@@ -1,7 +1,7 @@
 import numpy as np
-from Base import BaseLayer
+from Layers import Base
 
-class ReLU(BaseLayer):
+class ReLU(Base.BaseLayer):
     def __init__(self):
         super(ReLU, self).__init__()
     
