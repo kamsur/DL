@@ -1,28 +1,28 @@
 import numpy as np
-#import sys
-#sys.path.insert(0, r"C:\BABU\FAU\FAU coding\DL\exercise2_material\src_to_implement\Layers")
-from Layers import Base
 from scipy import signal
+#import sys
+#sys.path.insert(0, r"C:\Users\anshu\OneDrive\Desktop\FAU\DL\exercise2_material\src_to_implement\Layers")
+import Base
 
 class Conv(Base.BaseLayer):
     
-    def __init__(self, stride_shape=np.random.uniform(0,1,1)[0], convolution_shape=np.random.uniform(0,1,2)[0], num_kernels=np.random.uniform(0,1,1)[0]):
+    def __init__(self, stride_shape=np.random.uniform(0,1,1)[0],convolution_shape=np.random.uniform(0,1,2), num_kernels=np.random.uniform(0,1,1)[0]):
         super(Conv, self).__init__()
         self.trainable = True
         self.stride_shape = stride_shape
         self.convolution_shape = convolution_shape
         self.num_kernels = num_kernels
+        self.bias = np.random.uniform(0, 1, num_kernels)
+        
         if len(convolution_shape)==3:
-            self.weights = np.random.rand(num_kernels, convolution_shape[0], convolution_shape[1], convolution_shape[2])
+            self.weights = np.random.uniform(0, 1, size = (self.num_kernels, convolution_shape[0], convolution_shape[1], convolution_shape[2]))
         elif len(convolution_shape)==2:
-            self.weights = np.random.rand(num_kernels, convolution_shape[0], convolution_shape[1])
-        self.bias = np.random.uniform(0,1,num_kernels)
-        self._optimizer=None
-        self._gradient_weights=None
-        self._gradient_bias=None
-        self._optimizer_bias=None
-    
-
+            self.weights = np.random.uniform(0, 1, size = (self.num_kernels, convolution_shape[0], convolution_shape[1]))
+            
+        self._optimizer = None 
+        self._optimizer_bias=None 
+        self._gradient_weights = np.zeros(self.weights.shape)
+        self._gradient_bias = None
         
     @property
     def gradient_weights(self):
@@ -39,7 +39,7 @@ class Conv(Base.BaseLayer):
     @gradient_bias.setter
     def gradient_bias(self, value):
         self._gradient_bias = value
-        
+
     def forward(self, input_tensor):
         self.input_tensor = input_tensor
         if len(self.convolution_shape)==3:
@@ -168,22 +168,14 @@ class Conv(Base.BaseLayer):
             self.bias = self.optimizer_bias.calculate_update(self.bias, self.gradient_bias)
 
         return E_n_1
-
-
     
     def initialize(self, weights_initializer, bias_initializer):
         if len(self.convolution_shape) == 3:
-            self.weights = weights_initializer.initialize((self.num_kernels, self.convolution_shape[0], self.convolution_shape[1], self.convolution_shape[2]),
-                                                          self.convolution_shape[0]*self.convolution_shape[1]* self.convolution_shape[2],
-                                                          self.num_kernels*self.convolution_shape[1]* self.convolution_shape[2])
+            self.weights = weights_initializer.initialize((self.num_kernels, self.convolution_shape[0], self.convolution_shape[1], self.convolution_shape[2]),self.convolution_shape[0]*self.convolution_shape[1]* self.convolution_shape[2],self.num_kernels*self.convolution_shape[1]* self.convolution_shape[2])
             self.bias = bias_initializer.initialize((self.num_kernels), 1, self.num_kernels)
             self.bias = self.bias[-1]
-
-
-        elif len(self.convolution_shape) == 2:
-            self.weights = weights_initializer.initialize((self.num_kernels, self.convolution_shape[0], self.convolution_shape[1]),
-                                                          self.convolution_shape[0]*self.convolution_shape[1],
-                                                          self.num_kernels*self.convolution_shape[1])
+        else:
+            self.weights = weights_initializer.initialize((self.num_kernels, self.convolution_shape[0], self.convolution_shape[1]),self.convolution_shape[0]*self.convolution_shape[1],self.num_kernels*self.convolution_shape[1])
             self.bias = bias_initializer.initialize((1, self.num_kernels), 1, self.num_kernels)
             self.bias = self.bias[-1]
 
