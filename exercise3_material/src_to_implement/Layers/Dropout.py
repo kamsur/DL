@@ -1,9 +1,6 @@
 
 import numpy as np
-
-#import sys
-#sys.path.insert(0, r"C:\Users\anshu\OneDrive\Desktop\FAU\DL\exercise3_material\src_to_implement")
-#from Layers.Base import *
+from Layers import Base
 
 class Dropout(BaseLayer):
     def __init__(self, probability):
