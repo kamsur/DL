@@ -1,7 +1,4 @@
 import numpy as np
-
-import sys
-sys.path.insert(0, r"C:\Users\anshu\OneDrive\Desktop\FAU\DL\exercise3_material\src_to_implement\Layers")
 import Base
 
 class Sigmoid(Base.BaseLayer):
