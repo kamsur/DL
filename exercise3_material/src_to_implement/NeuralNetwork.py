@@ -10,6 +10,13 @@ class NeuralNetwork:
         self.layers = []
         self.data_layer = []
         self.loss_layer = []
+        
+    @property
+    def phase(self):
+        return self._phase
+    @phase.setter
+    def phase(self, value):
+        self._phase = value
     
     def forward(self, input_tensor=None, label_tensor=None):
         if input_tensor is None and label_tensor is None:
