@@ -1,6 +1,4 @@
 import numpy as np
-#import sys
-#sys.path.insert(0, r"C:\Users\anshu\OneDrive\Desktop\FAU\DL\exercise2_material\src_to_implement\Layers")
 from Layers import Base
 
 class Flatten(Base.BaseLayer):
@@ -9,13 +7,10 @@ class Flatten(Base.BaseLayer):
         super(Flatten, self).__init__()
     
     def forward(self, input_tensor):
-        a = input_tensor.shape[0]
-        b = input_tensor.shape[1]
-        c = input_tensor.shape[2]
-        d = input_tensor.shape[3]
-        self.input_dimensions = (a, b, c, d)
-        input_tensor1 = np.zeros((a, b*c*d))
-        for i in range(a):
+        self.input_dimensions = input_tensor.shape
+        b = input_tensor.shape[0]
+        input_tensor1 = np.zeros((b, np.prod(input_tensor.shape[1:])))
+        for i in range(b):
             input_tensor1[i] = input_tensor[i].flatten()
         return input_tensor1
     
