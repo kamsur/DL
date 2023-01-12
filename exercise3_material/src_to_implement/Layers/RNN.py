@@ -7,6 +7,7 @@ from Layers import TanH
 class RNN(Base.BaseLayer):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
+        self.trainable=True
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -18,9 +19,10 @@ class RNN(Base.BaseLayer):
         self.last_seq_h=None
         self.time_size=None
         self.input_tensor = None
-        self.FC_h = FullyConnected(hidden_size + input_size, hidden_size)
-        self.tanH=TanH()
-        self.FC_y = FullyConnected(hidden_size, output_size)
+        self.FC_h = FullyConnected.FullyConnected(hidden_size + input_size, hidden_size)
+
+        self.tanH=TanH.TanH()
+        self.FC_y = FullyConnected.FullyConnected(hidden_size, output_size)
         
     @property
     def memorize(self):
@@ -57,6 +59,9 @@ class RNN(Base.BaseLayer):
     def initialize(self, weights_initializer, bias_initializer):
         self.FC_y.initialize(weights_initializer, bias_initializer)
         self.FC_h.initialize(weights_initializer, bias_initializer)
+        self.weights = self.FC_h.weights
+        self.gradient_weights = self.FC_h.gradient_weights
+
     
     def forward(self, input_tensor):
         self.input_tensor = input_tensor
@@ -103,6 +108,6 @@ class RNN(Base.BaseLayer):
             self.weights = self.optimizer.calculate_update(self.weights, self.gradient_weights)
             self.FC_y.weights = weights_y
             self.FC_h.weights = self.weights
-        return self.out_error
+        return self.Ex_out
 
 
