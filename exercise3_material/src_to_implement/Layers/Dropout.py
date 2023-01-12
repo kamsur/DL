@@ -2,7 +2,7 @@
 import numpy as np
 from Layers import Base
 
-class Dropout(BaseLayer):
+class Dropout(Base.BaseLayer):
     def __init__(self, probability):
         super().__init__()
         self.probability = probability

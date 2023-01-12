@@ -4,6 +4,7 @@ from Layers import Base
 class TanH(Base.BaseLayer):
     def __init__(self):
         super(TanH, self).__init__()
+        self.tanh=None
         pass
 
     def forward(self, input_tensor):

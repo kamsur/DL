@@ -1,5 +1,5 @@
 import numpy as np
-import Base
+from Layers import Base
 
 class Sigmoid(Base.BaseLayer):
     def __init__(self):
