@@ -14,6 +14,8 @@ class BatchNormalization(Base.BaseLayer):
         self._gradient_weights = None
         self._optimizer = None
         self._bias_optimizer = None
+        self.mean_test=None
+        self.variance_test=None
     
     def initialize(self, weights_initializer, bias_initializer):
         self.bias = np.zeros((self.channels))
@@ -43,23 +45,23 @@ class BatchNormalization(Base.BaseLayer):
         if len(input_tensor.shape)==4:
             temp = True
             input_tensor = self.reformat(input_tensor)
-            
         self.input_tensor = input_tensor
-        
-        self.mean = np.mean(input_tensor, axis=0)
-        self.variance = np.var(input_tensor, axis=0)
-            
+                    
         if self.testing_phase == False:
-            mean1 = np.mean(input_tensor, axis=0)
-            variance1 = np.var(input_tensor, axis=0)
+            self.mean = np.mean(input_tensor, axis=0)
+            self.variance = np.var(input_tensor, axis=0)
+            if self.mean_test is None or self.variance_test is None:
+                self.mean_test = self.mean
+                self.variance_test = self.variance
+            else:
+                self.mean_test = self.alpha*self.mean_test + (1 - self.alpha)*self.mean
+                self.variance_test = self.alpha*self.variance_test + (1 - self.alpha)*self.variance
+            self.X_hat = (input_tensor - self.mean)/np.sqrt(self.variance + eps)
                 
-            self.mean_test = self.alpha*self.mean + (1 - self.alpha)*mean1
-            self.variance_test = self.alpha*self.variance + (1 - self.alpha)*variance1
-                
-            self.X_hat = (input_tensor - mean1)/np.sqrt(variance1 + eps)
-                
-        elif self.testing_phase == True:
-            self.X_hat = (input_tensor - self.mean_test) / np.sqrt(self.variance_test + eps)
+        else:
+            self.mean=self.mean_test
+            self.variance=self.variance_test
+            self.X_hat = (input_tensor - self.mean) / np.sqrt(self.variance + eps)
             
         output_tensor = self.weights*self.X_hat + self.bias
         
