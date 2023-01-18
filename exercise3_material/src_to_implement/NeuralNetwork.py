@@ -29,8 +29,8 @@ class NeuralNetwork:
             prediction_tensor=layer.forward(prediction_tensor)
             try:
                 if layer.optimizer:
-                        if layer.optimizer.regularizer:
-                            regularization_loss += layer.optimizer.regularizer.norm(layer.weights)
+                    if layer.optimizer.regularizer:
+                        regularization_loss += layer.optimizer.regularizer.norm(layer.weights)
             except(AttributeError):
                 pass
         loss = self.loss_layer.forward(prediction_tensor,self.label_tensor)

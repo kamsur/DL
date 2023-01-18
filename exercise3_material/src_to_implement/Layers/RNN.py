@@ -3,6 +3,7 @@ import copy
 from Layers import Base
 from Layers import FullyConnected
 from Layers import TanH
+from Layers import Sigmoid
 
 class RNN(Base.BaseLayer):
     def __init__(self, input_size, hidden_size, output_size):
@@ -10,6 +11,7 @@ class RNN(Base.BaseLayer):
         self.FC_h = FullyConnected.FullyConnected(hidden_size + input_size, hidden_size)
         self.tanH=TanH.TanH()
         self.FC_y = FullyConnected.FullyConnected(hidden_size, output_size)
+        self.sig_y=Sigmoid.Sigmoid()
         self.trainable=True
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -17,6 +19,7 @@ class RNN(Base.BaseLayer):
         self._memorize = False
         self._optimizer=None
         self.h_t=None
+        self.y_t=None
         self.last_seq_h=None
         self.time_size=None
         self.input_tensor_h = None
@@ -76,19 +79,19 @@ class RNN(Base.BaseLayer):
         else:
             self.h_t = np.zeros((self.time_size + 1, self.hidden_size))
 
-        y_t = np.zeros((self.time_size, self.output_size))
+        self.y_t = np.zeros((self.time_size, self.output_size))
         for t in range(self.time_size):
             h = self.h_t[t][np.newaxis, :]
             x = input_tensor[t][np.newaxis, :]
             xtilda_t = np.concatenate((h, x), axis = 1)
             self.h_t[t+1] = self.tanH.forward(self.FC_h.forward(xtilda_t))
             self.input_tensor_h[t]=self.FC_h.input_tensor
-            y_t[t] = (self.FC_y.forward(self.h_t[t + 1][np.newaxis, :]))
+            self.y_t[t] = self.sig_y.forward(self.FC_y.forward(self.h_t[t + 1][np.newaxis, :]))
             self.input_tensor_y[t]=self.FC_y.input_tensor
         
         self.last_seq_h = self.h_t[-1]
 
-        return y_t
+        return self.y_t
 
     def backward(self, error_tensor):
         self.Ex_out=np.zeros((self.time_size, self.input_size))
@@ -97,7 +100,8 @@ class RNN(Base.BaseLayer):
         gradient_weights_h=None
         for t in reversed(range(self.time_size)):
             self.FC_y.input_tensor = self.input_tensor_y[t]
-            Ey = self.FC_y.backward(error_tensor[t][np.newaxis, :])
+            self.sig_y.sig=self.y_t[t]
+            Ey = self.FC_y.backward(self.sig_y.backward(error_tensor[t][np.newaxis, :]))
             if gradient_weights_y is not None:
                 gradient_weights_y = gradient_weights_y+self.FC_y.gradient_weights
             else:
