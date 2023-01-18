@@ -17,7 +17,7 @@ class BatchNormalization(Base.BaseLayer):
         self.mean_test=None
         self.variance_test=None
     
-    def initialize(self, weights_initializer, bias_initializer):
+    def initialize(self, weights_initializer=None, bias_initializer=None):
         self.bias = np.zeros((self.channels))
         self.weights = np.ones((self.channels))
         
@@ -84,10 +84,10 @@ class BatchNormalization(Base.BaseLayer):
         self.gradient_weights = np.sum(error_tensor * self.X_hat, axis=0)
         self.gradient_bias = np.sum(error_tensor, axis=0)
             
-        if self._optimizer:
-            self.weights = self._optimizer.calculate_update(self.weights, self._gradient_weights)
-        if self._bias_optimizer:
-            self.bias = self._bias_optimizer.calculate_update(self.bias, self._gradient_bias)
+        if self.optimizer:
+            self.weights = self.optimizer.calculate_update(self.weights, self.gradient_weights)
+        if self.bias_optimizer:
+            self.bias = self.bias_optimizer.calculate_update(self.bias, self.gradient_bias)
             
         return result
     
