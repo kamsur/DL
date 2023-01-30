@@ -13,7 +13,7 @@ class ChallengeDataset(Dataset):
         super().__init__()
         self.data = data
         self.mode = mode
-        self._transform = tv.transforms.Compose()
+        self._transform = tv.transforms.Compose(transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize()])
     # TODO implement the Dataset class according to the description
     #pass
 
@@ -22,5 +22,16 @@ class ChallengeDataset(Dataset):
         return self._transform
 
     @transform.setter
-    def transform(self, transforms_list):
-        self._transform = tv.transforms.Compose(transforms_list)
+    def transform(self, transforms_list=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize()]):
+        self._transform = tv.transforms.Compose(transforms=transforms_list)
+
+    def __len__(self):
+        return len(self.data.index)
+
+    def __getitem__(self, index):
+        filename, isCrack, isInactive = self.data.iloc[index]
+        img = imread(Path(filename))
+        img = gray2rgb(img)
+        transformer = self.transform
+        img = transformer(img)
+        return (img, torch.tensor([isCrack, isInactive]))
