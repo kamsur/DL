@@ -21,8 +21,8 @@ class ResBlock(nn.Module):
             self.input_isConv = True
 
         self.batch_norm_ip = nn.BatchNorm2d(out_channels)
-        self.relu_2 = nn.ReLU()
-        self.seq = nn.Sequential(self.conv1, self.batch_norm1, self.relu_1, self.conv2, self.batch_norm2)
+        self.relu2 = nn.ReLU()
+        self.seq = nn.Sequential(self.conv1, self.batch_norm1, self.relu1, self.conv2, self.batch_norm2)
 
     def forward(self, input_tensor):
         self.input_tensor = input_tensor
@@ -31,7 +31,7 @@ class ResBlock(nn.Module):
             self.input_tensor = self.conv1X1(self.input_tensor)
         self.input_tensor = self.batch_norm_ip(self.input_tensor)
         output_tensor += self.input_tensor
-        output_tensor = self.relu_2(output_tensor)
+        output_tensor = self.relu2(output_tensor)
         return output_tensor
 
 class Flatten(nn.Module):
