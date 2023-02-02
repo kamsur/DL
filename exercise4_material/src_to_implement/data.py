@@ -7,13 +7,15 @@ import numpy as np
 import torchvision as tv
 from pandas import DataFrame
 
+train_mean = [0.59685254, 0.59685254, 0.59685254]
+train_std = [0.16043035, 0.16043035, 0.16043035]
 
 class ChallengeDataset(Dataset):
     def __init__(self, data:DataFrame, mode:str):
         super().__init__()
         self.data = data
         self.mode = mode
-        self._transform = tv.transforms.Compose(transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize()])
+        self._transform = tv.transforms.Compose(transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std))])
     # TODO implement the Dataset class according to the description
     #pass
 
@@ -22,7 +24,7 @@ class ChallengeDataset(Dataset):
         return self._transform
 
     @transform.setter
-    def transform(self, transforms_list=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize()]):
+    def transform(self, transforms_list=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std))]):
         self._transform = tv.transforms.Compose(transforms=transforms_list)
 
     def __len__(self):
