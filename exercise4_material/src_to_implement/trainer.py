@@ -2,7 +2,6 @@ import torch as t
 from sklearn.metrics import f1_score
 from tqdm.autonotebook import tqdm
 
-
 class Trainer:
 
     def __init__(self,
@@ -22,7 +21,7 @@ class Trainer:
 
         self._early_stopping_patience = early_stopping_patience
 
-        if cuda:
+        if cuda and t.cuda.is_available():
             self._model = model.cuda()
             self._crit = crit.cuda()
             
@@ -56,7 +55,7 @@ class Trainer:
         # -propagate through the network
         pred = self._model(x)
         # -calculate the loss
-        loss = self._crit(pred, y)
+        loss = self._crit(pred, y.float())
         # -compute gradient by backward propagation
         loss.backward()
         # -update weights
@@ -72,7 +71,7 @@ class Trainer:
         # predict
         pred = self._model(x)
         # propagate through the network and calculate the loss and predictions
-        loss = self._crit(pred, y)
+        loss = self._crit(pred, y.float())
         # return the loss and the predictions
         return loss, pred
         #TODO
@@ -84,7 +83,7 @@ class Trainer:
         loss = 0
         for img, label in self._train_dl:
         # transfer the batch to "cuda()" -> the gpu if a gpu is given
-            if self._cuda:
+            if self._cuda and t.cuda.is_available():
                 img = img.to('cuda')
                 label = label.to('cuda')
             else:
@@ -103,12 +102,12 @@ class Trainer:
         # disable gradient computation. Since you don't need to update the weights during testing, gradients aren't required anymore.
         with t.no_grad():
             total_loss = 0
-            preds = []
-            labels = [] 
+            preds = None
+            labels = None 
             # iterate through the validation set
             for img, label in self._val_test_dl:
             # transfer the batch to the gpu if given
-                if self._cuda:
+                if self._cuda and t.cuda.is_available():
                     img = img.to('cuda')
                     label = label.to('cuda')
                 else:
@@ -118,10 +117,16 @@ class Trainer:
                 loss, pred = self.val_test_step(img, label)
                 total_loss = total_loss + loss
             # save the predictions and the labels for each batch
-                preds.append(pred)
-                labels.append(label)
+                if preds is None and labels is None:
+                    labels = label
+                    preds = pred
+                else:
+                    labels = t.cat((labels, label), dim=0)
+                    preds = t.cat((preds, pred), dim=0)
             # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
             avg_loss=total_loss / len(self._val_test_dl)
+            self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='weighted')
+            print("F1 score=",self.f1_score)
             # return the loss and print the calculated metrics
             return avg_loss
         #TODO
@@ -132,23 +137,35 @@ class Trainer:
         # create a list for the train and validation losses, and create a counter for the epoch 
         train_losses = []
         val_losses = []
-        self.epoch_cntr = 0
+        epoch_cntr = 0
+        patience_cntr=0
+        f1_max=None
         #TODO
         
         while True:
       
             # stop by epoch number
-            if self.epoch_cntr == epochs:
+            if epoch_cntr == epochs:
                 break
             # train for a epoch and then calculate the loss and metrics on the validation set
-            self.epoch_cntr += 1
+            epoch_cntr += 1
             train_loss = self.train_epoch()
             val_loss = self.val_test()
             # append the losses to the respective lists
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             # use the save_checkpoint function to save the model (can be restricted to epochs with improvement)
-
+            if (len(val_losses) != 0 and val_loss < min(val_losses)) or (f1_max is not None and self.f1_score>1.02*f1_max):
+                self.save_checkpoint(epoch_cntr)
+            if (len(val_losses) >1 and val_loss > 1.04 * val_losses[-2]) or (f1_max is not None and self.f1_score<0.98*f1_max):
+                patience_cntr += 1
+            if f1_max is None:
+                f1_max=self.f1_score 
+            elif self.f1_score>1.02*f1_max:
+                f1_max=self.f1_score
+            print("Epoch counter={},Patience counter={},f1_max={}".format(epoch_cntr,patience_cntr,f1_max))
             # check whether early stopping should be performed using the early stopping criterion and stop if so
+            if epoch_cntr==epochs or (self._early_stopping_patience>0 and patience_cntr==self._early_stopping_patience):
+                return train_losses,val_losses
             # return the losses for both training and validation
         #TODO
