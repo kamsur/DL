@@ -61,7 +61,7 @@ class Trainer:
         # -update weights
         self._optim.step()
         # -return the loss
-        return loss
+        return loss.item()
         #TODO
         
         
@@ -73,7 +73,7 @@ class Trainer:
         # propagate through the network and calculate the loss and predictions
         loss = self._crit(pred, y.float())
         # return the loss and the predictions
-        return loss, pred
+        return loss.item(), pred
         #TODO
         
     def train_epoch(self):
@@ -126,7 +126,7 @@ class Trainer:
             # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
             avg_loss=total_loss / len(self._val_test_dl)
             self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='weighted')
-            print("F1 score=",self.f1_score)
+            print("F1 score={},Val_loss={}".format(self.f1_score,avg_loss))
             # return the loss and print the calculated metrics
             return avg_loss
         #TODO
@@ -155,15 +155,16 @@ class Trainer:
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             # use the save_checkpoint function to save the model (can be restricted to epochs with improvement)
-            if (len(val_losses) != 0 and val_loss < min(val_losses)) or (f1_max is not None and self.f1_score>1.02*f1_max):
+            if (len(val_losses) != 0 and val_loss < min(val_losses)) or (f1_max is not None and self.f1_score>=1.02*f1_max):
                 self.save_checkpoint(epoch_cntr)
-            if (len(val_losses) >1 and val_loss > 1.04 * val_losses[-2]) or (f1_max is not None and self.f1_score<0.98*f1_max):
+                patience_cntr=0
+            if (len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]) or (f1_max is not None and self.f1_score<1.02*f1_max):
                 patience_cntr += 1
             if f1_max is None:
                 f1_max=self.f1_score 
-            elif self.f1_score>1.02*f1_max:
+            elif self.f1_score>=1.02*f1_max:
                 f1_max=self.f1_score
-            print("Epoch counter={},Patience counter={},f1_max={}".format(epoch_cntr,patience_cntr,f1_max))
+            print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
             # check whether early stopping should be performed using the early stopping criterion and stop if so
             if epoch_cntr==epochs or (self._early_stopping_patience>0 and patience_cntr==self._early_stopping_patience):
                 return train_losses,val_losses

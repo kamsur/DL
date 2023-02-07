@@ -17,7 +17,7 @@ for root, _, files in os.walk('.'):
             csv_path = os.path.join(root, name)
 dataFrame = pd.read_csv(csv_path, sep=';')
 # this can be accomplished using the already imported pandas and sklearn.model_selection modules
-train_dF, val_dF = train_test_split(dataFrame, test_size=0.20, random_state=40)
+train_dF, val_dF = train_test_split(dataFrame, test_size=0.30, random_state=40)
 # TODO
 
 # set up data loading for the training and validation set each using t.utils.data.DataLoader and ChallengeDataset objects
@@ -32,7 +32,7 @@ resNet=model.ResNet()
 # set up a suitable loss criterion (you can find a pre-implemented loss functions in t.nn)
 lossCrit=t.nn.CrossEntropyLoss()
 # set up the optimizer (see t.optim)
-optimizer=t.optim.Adam(resNet.parameters(),lr=1e-3,weight_decay=5*1e-3)
+optimizer=t.optim.Adam(resNet.parameters(),lr=2.5*1e-4,weight_decay=2*1e-5)
 # create an object of type Trainer and set its early stopping criterion
 trainer=Trainer(resNet,lossCrit,optimizer,train_dl,val_dl,cuda=True,early_stopping_patience=10)
 # TODO

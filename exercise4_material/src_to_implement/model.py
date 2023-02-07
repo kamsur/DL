@@ -1,10 +1,4 @@
-import numpy as np
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from data import ChallengeDataset
-import pandas as pd
 
 class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride_shape=1):

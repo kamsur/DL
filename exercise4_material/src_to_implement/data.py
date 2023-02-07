@@ -3,7 +3,6 @@ import torch
 from pathlib import Path
 from skimage.io import imread
 from skimage.color import gray2rgb
-import numpy as np
 import torchvision as tv
 from pandas import DataFrame
 
