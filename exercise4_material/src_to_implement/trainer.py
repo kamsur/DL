@@ -125,7 +125,7 @@ class Trainer:
                     preds = t.cat((preds, pred), dim=0)
             # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
             avg_loss=total_loss / len(self._val_test_dl)
-            self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='weighted')
+            self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='micro')
             print("F1 score={},Val_loss={}".format(self.f1_score,avg_loss))
             # return the loss and print the calculated metrics
             return avg_loss
@@ -139,7 +139,9 @@ class Trainer:
         val_losses = []
         epoch_cntr = 0
         patience_cntr=0
-        f1_max=None
+        val_loss_min=None
+        f1_max=0
+        self.f1_scores=[]
         #TODO
         
         while True:
@@ -154,16 +156,17 @@ class Trainer:
             # append the losses to the respective lists
             train_losses.append(train_loss)
             val_losses.append(val_loss)
+            self.f1_scores.append(self.f1_score)
+            if val_loss_min is None:
+                val_loss_min=val_loss
             # use the save_checkpoint function to save the model (can be restricted to epochs with improvement)
-            if (len(val_losses) != 0 and val_loss < min(val_losses)) or (f1_max is not None and self.f1_score>=1.02*f1_max):
+            if (len(val_losses)>0 and val_loss <= val_loss_min) and (self.f1_score>=f1_max):
                 self.save_checkpoint(epoch_cntr)
                 patience_cntr=0
-            if (len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]) or (f1_max is not None and self.f1_score<1.02*f1_max):
-                patience_cntr += 1
-            if f1_max is None:
-                f1_max=self.f1_score 
-            elif self.f1_score>=1.02*f1_max:
                 f1_max=self.f1_score
+                val_loss_min=val_loss
+            elif (len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]):
+                patience_cntr += 1
             print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
             # check whether early stopping should be performed using the early stopping criterion and stop if so
             if epoch_cntr==epochs or (self._early_stopping_patience>0 and patience_cntr==self._early_stopping_patience):
