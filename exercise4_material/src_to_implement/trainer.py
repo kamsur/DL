@@ -29,7 +29,7 @@ class Trainer:
         t.save({'state_dict': self._model.state_dict()}, 'checkpoints/checkpoint_{:03d}.ckp'.format(epoch))
     
     def restore_checkpoint(self, epoch_n):
-        ckp = t.load('checkpoints/checkpoint_{:03d}.ckp'.format(epoch_n), 'cuda' if self._cuda else None)
+        ckp = t.load('checkpoints/checkpoint_{:03d}.ckp'.format(epoch_n), 'cuda' if (self._cuda and t.cuda.is_available()) else None)
         self._model.load_state_dict(ckp['state_dict'])
         
     def save_onnx(self, fn):
@@ -125,7 +125,7 @@ class Trainer:
                     preds = t.cat((preds, pred), dim=0)
             # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
             avg_loss=total_loss / len(self._val_test_dl)
-            self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='micro')
+            self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='weighted')
             print("F1 score={},Val_loss={}".format(self.f1_score,avg_loss))
             # return the loss and print the calculated metrics
             return avg_loss
@@ -160,14 +160,14 @@ class Trainer:
             if val_loss_min is None:
                 val_loss_min=val_loss
             # use the save_checkpoint function to save the model (can be restricted to epochs with improvement)
-            if (len(val_losses)>0 and val_loss <= val_loss_min) and (self.f1_score>=f1_max):
+            if (len(val_losses)>0 and val_loss <= val_loss_min) or (self.f1_score>=f1_max):
                 self.save_checkpoint(epoch_cntr)
                 patience_cntr=0
                 f1_max=self.f1_score
                 val_loss_min=val_loss
             elif (len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]):
                 patience_cntr += 1
-            print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
+            #print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
             # check whether early stopping should be performed using the early stopping criterion and stop if so
             if epoch_cntr==epochs or (self._early_stopping_patience>0 and patience_cntr==self._early_stopping_patience):
                 return train_losses,val_losses
