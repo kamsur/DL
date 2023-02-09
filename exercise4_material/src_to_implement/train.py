@@ -36,7 +36,7 @@ optimizer=t.optim.Adam(resNet.parameters(),lr=learning_rate,betas=betas,weight_d
 # create an object of type Trainer and set its early stopping criterion
 trainer=Trainer(resNet,lossCrit,optimizer,train_dl,val_dl,cuda=True,early_stopping_patience=5)
 # TODO
-#trainer.restore_checkpoint(25)
+#trainer.restore_checkpoint(7)
 # go, go, go... call fit on trainer
 res = trainer.fit(epochs=90)#TODO
 
