@@ -167,7 +167,7 @@ class Trainer:
                 val_loss_min=val_loss
             elif (len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]):
                 patience_cntr += 1
-            #print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
+            print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
             # check whether early stopping should be performed using the early stopping criterion and stop if so
             if epoch_cntr==epochs or (self._early_stopping_patience>0 and patience_cntr==self._early_stopping_patience):
                 return train_losses,val_losses
