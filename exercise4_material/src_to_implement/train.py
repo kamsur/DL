@@ -34,9 +34,9 @@ lossCrit=t.nn.BCELoss()
 learning_rate,weight_decay,betas=(0.5*1e-4,0,(0.9,0.999))
 optimizer=t.optim.Adam(resNet.parameters(),lr=learning_rate,betas=betas,weight_decay=weight_decay)
 # create an object of type Trainer and set its early stopping criterion
-trainer=Trainer(resNet,lossCrit,optimizer,train_dl,val_dl,cuda=True,early_stopping_patience=20)
+trainer=Trainer(resNet,lossCrit,optimizer,train_dl,val_dl,cuda=True,early_stopping_patience=5)
 # TODO
-
+#trainer.restore_checkpoint(25)
 # go, go, go... call fit on trainer
 res = trainer.fit(epochs=90)#TODO
 
@@ -45,9 +45,10 @@ plt.plot(np.arange(len(res[0])), res[0], label='train loss')
 plt.plot(np.arange(len(res[1])), res[1], label='val loss')
 plt.yscale('log')
 plt.legend()
-#plt.savefig('losses.png')
-
+plt.savefig('losses.png')
+'''
 plt.savefig('losses_lr={}_wd={}.png'.format(str(learning_rate),str(weight_decay)))
 plt.figure()
 plt.plot(np.arange(len(trainer.f1_scores)), trainer.f1_scores, label='f1 score')
 plt.savefig('f1_lr={}_wd={}.png'.format(str(learning_rate),str(weight_decay)))
+'''
