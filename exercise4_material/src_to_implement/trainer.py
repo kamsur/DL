@@ -151,6 +151,22 @@ class Trainer:
                 break
             # train for a epoch and then calculate the loss and metrics on the validation set
             epoch_cntr += 1
+            lr,weight_decay=(self._optim.state_dict()['param_groups'][0]['lr'],self._optim.state_dict()['param_groups'][0]['weight_decay'])
+            if epoch_cntr==1:
+                lr*=10
+                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
+            elif epoch_cntr==10:
+                lr*=0.1
+                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
+            elif epoch_cntr==60:
+                lr*=0.9
+                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
+            elif epoch_cntr==85:
+                lr*=0.8
+                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
+            elif epoch_cntr==105:
+                lr*=0.7
+                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
             train_loss = self.train_epoch()
             val_loss = self.val_test()
             # append the losses to the respective lists
@@ -162,6 +178,7 @@ class Trainer:
             # use the save_checkpoint function to save the model (can be restricted to epochs with improvement)
             if (len(val_losses)>0 and val_loss <= val_loss_min) or (self.f1_score>=f1_max):
                 self.save_checkpoint(epoch_cntr)
+                #self.save_onnx('checkpoint_{:03d}.onnx'.format(epoch_cntr))
                 patience_cntr=0
                 f1_max=self.f1_score
                 val_loss_min=val_loss

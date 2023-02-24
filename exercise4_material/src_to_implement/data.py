@@ -14,7 +14,11 @@ class ChallengeDataset(Dataset):
         super().__init__()
         self.data = data
         self.mode = mode
-        self._transform = tv.transforms.Compose(transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std)])
+        self.train_transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std), tv.transforms.RandomVerticalFlip(p=0.5), tv.transforms.RandomHorizontalFlip(p=0.5)]
+        self.val_transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std)]
+        #self._transform = tv.transforms.Compose(transforms=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std), tv.transforms.RandomChoice([tv.transforms.RandomVerticalFlip(p=1), tv.transforms.RandomHorizontalFlip(p=1)],p=(0.33,0.33))])
+        self._transform = tv.transforms.Compose(transforms=self.val_transforms)
+
     # TODO implement the Dataset class according to the description
     #pass
 
@@ -22,9 +26,13 @@ class ChallengeDataset(Dataset):
     def transform(self):
         return self._transform
 
+    '''@transform.setter
+    def transform(self, transforms_list=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std), tv.transforms.RandomChoice([tv.transforms.RandomVerticalFlip(p=1), tv.transforms.RandomHorizontalFlip(p=1), tv.transforms.RandomRotation(180)],p=(0.33,0.33,0.33))]):
+        self._transform = tv.transforms.Compose(transforms=transforms_list)'''
     @transform.setter
-    def transform(self, transforms_list=[tv.transforms.ToPILImage(), tv.transforms.ToTensor(), tv.transforms.Normalize(train_mean, train_std)]):
-        self._transform = tv.transforms.Compose(transforms=transforms_list)
+    def transform(self, transforms_list):
+        self._transform = tv.transforms.Compose(transforms=transforms_list if transforms_list is not None else self.val_transforms)
+
 
     def __len__(self):
         return len(self.data.index)
@@ -33,6 +41,11 @@ class ChallengeDataset(Dataset):
         filename, isCrack, isInactive = self.data.iloc[index]
         img = imread(Path(filename))
         img = gray2rgb(img)
-        transformer = self.transform
+        if self.mode=='train':
+            self.transform=self.train_transforms
+            transformer = self.transform
+        else:
+            self.transform=self.val_transforms
+            transformer = self.transform
         img = transformer(img)
         return (img, torch.tensor([isCrack, isInactive]))

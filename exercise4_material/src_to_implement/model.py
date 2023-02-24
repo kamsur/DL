@@ -41,16 +41,22 @@ class ResNet(nn.Module):
     def __init__(self):
         super(ResNet, self).__init__()
         self.seq = nn.Sequential(
+            #nn.Dropout(p=0.1),
             nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, stride=2, padding=3),
             nn.BatchNorm2d(num_features=64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=3, stride=2),
+            #nn.Dropout(p=0.1),
             ResBlock(in_channels=64, out_channels=64),
+            #nn.Dropout(p=0.1),
             ResBlock(in_channels=64, out_channels=128, stride_shape=2),
+            nn.Dropout(p=0.5),
             ResBlock(in_channels=128, out_channels=256, stride_shape=2),
+            nn.Dropout(p=0.5),
             ResBlock(in_channels=256, out_channels=512, stride_shape=2),
             nn.AvgPool2d(kernel_size=10),
             Flatten(),
+            nn.Dropout(p=0.5),
             nn.Linear(in_features=512, out_features=2),
             nn.Sigmoid()
         )
