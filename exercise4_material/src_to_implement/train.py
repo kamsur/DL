@@ -38,7 +38,7 @@ trainer=Trainer(resNet,lossCrit,optimizer,train_dl,val_dl,cuda=True,early_stoppi
 # TODO
 #trainer.restore_checkpoint(28)
 # go, go, go... call fit on trainer
-res = trainer.fit(epochs=100, L1factor=5e-5)#TODO
+res = trainer.fit(epochs=100, L1factor=0)#TODO
 
 # plot the results
 plt.plot(np.arange(len(res[0])), res[0], label='train loss')
