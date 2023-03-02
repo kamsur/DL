@@ -50,7 +50,7 @@ class ResNet(nn.Module):
             ResBlock(in_channels=64, out_channels=64),
             #nn.Dropout(p=0.1),
             ResBlock(in_channels=64, out_channels=128, stride_shape=2),
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.2),
             ResBlock(in_channels=128, out_channels=256, stride_shape=2),
             nn.Dropout(p=0.5),
             ResBlock(in_channels=256, out_channels=512, stride_shape=2),

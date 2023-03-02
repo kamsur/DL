@@ -16,12 +16,12 @@ for root, _, files in os.walk('.'):
             csv_path = os.path.join(root, name)
 dataFrame = pd.read_csv(csv_path, sep=';')
 # this can be accomplished using the already imported pandas and sklearn.model_selection modules
-train_dF, val_dF = train_test_split(dataFrame, test_size=0.25, random_state=40)
+train_dF, val_dF = train_test_split(dataFrame, test_size=0.2, random_state=40)
 # TODO
 
 # set up data loading for the training and validation set each using t.utils.data.DataLoader and ChallengeDataset objects
-train_dl = t.utils.data.DataLoader(ChallengeDataset(train_dF, 'train'), batch_size=25, shuffle = True)
-val_dl = t.utils.data.DataLoader(ChallengeDataset(val_dF, 'val'), batch_size=25)
+train_dl = t.utils.data.DataLoader(ChallengeDataset(train_dF, 'train'), batch_size=20, shuffle = True)
+val_dl = t.utils.data.DataLoader(ChallengeDataset(val_dF, 'val'), batch_size=20)
 # TODO
 
 # create an instance of our ResNet model
@@ -38,7 +38,7 @@ trainer=Trainer(resNet,lossCrit,optimizer,train_dl,val_dl,cuda=True,early_stoppi
 # TODO
 #trainer.restore_checkpoint(28)
 # go, go, go... call fit on trainer
-res = trainer.fit(epochs=120)#TODO
+res = trainer.fit(epochs=100, L1factor=5e-5)#TODO
 
 # plot the results
 plt.plot(np.arange(len(res[0])), res[0], label='train loss')

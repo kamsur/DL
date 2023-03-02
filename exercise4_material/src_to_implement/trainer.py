@@ -76,7 +76,7 @@ class Trainer:
         return loss.item(), pred
         #TODO
         
-    def train_epoch(self):
+    def train_epoch(self,L1factor=0):
         # set training mode
         self._model = self._model.train()
         # iterate through the training set
@@ -90,6 +90,12 @@ class Trainer:
                 img = img.to('cpu')
                 label = label.to('cpu')
         # perform a training step
+            if(L1factor!=0):
+                l1_reg = t.nn.L1Loss(reduction='sum')
+                reg_loss = 0
+                for param in self._model.parameters():
+                    reg_loss += l1_reg(param,target=t.zeros_like(param))
+                loss += L1factor * reg_loss
             loss = loss + self.train_step(x=img, y=label)        
         # calculate the average loss for the epoch and return it
         avg_loss = loss / len(self._train_dl)
@@ -132,7 +138,7 @@ class Trainer:
         #TODO
         
     
-    def fit(self, epochs=-1):
+    def fit(self, epochs=-1, L1factor=0):
         assert self._early_stopping_patience > 0 or epochs > 0
         # create a list for the train and validation losses, and create a counter for the epoch 
         train_losses = []
@@ -167,7 +173,7 @@ class Trainer:
             elif epoch_cntr==105:
                 lr*=0.7
                 self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
-            train_loss = self.train_epoch()
+            train_loss = self.train_epoch(L1factor=L1factor)
             val_loss = self.val_test()
             # append the losses to the respective lists
             train_losses.append(train_loss)
