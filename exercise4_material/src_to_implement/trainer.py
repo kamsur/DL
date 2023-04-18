@@ -1,20 +1,25 @@
 import torch as t
 from sklearn.metrics import f1_score
 from tqdm.autonotebook import tqdm
+import os
 
 class Trainer:
 
     def __init__(self,
                  model,                        # Model to be trained.
-                 crit,                         # Loss function
+                 train_crit,                         # Loss function
+                 val_crit=None,
                  optim=None,                   # Optimizer
                  train_dl=None,                # Training data set
                  val_test_dl=None,             # Validation (or test) data set
+                 scheduler=None,               # Scheduler
                  cuda=True,                    # Whether to use the GPU
                  early_stopping_patience=-1):  # The patience for early stopping
         self._model = model
-        self._crit = crit
+        self._train_crit = train_crit
+        self._val_crit=val_crit
         self._optim = optim
+        self._schedlr=scheduler
         self._train_dl = train_dl
         self._val_test_dl = val_test_dl
         self._cuda = cuda
@@ -23,13 +28,16 @@ class Trainer:
 
         if cuda and t.cuda.is_available():
             self._model = model.cuda()
-            self._crit = crit.cuda()
+            self._train_crit = train_crit.cuda() if self._train_crit is not None else None
+            self._val_crit = val_crit.cuda() if self._val_crit is not None else None
             
     def save_checkpoint(self, epoch):
+        if not os.path.exists("checkpoints"):
+            os.mkdir("checkpoints")
         t.save({'state_dict': self._model.state_dict()}, 'checkpoints/checkpoint_{:03d}.ckp'.format(epoch))
     
     def restore_checkpoint(self, epoch_n):
-        ckp = t.load('checkpoints/checkpoint_{:03d}.ckp'.format(epoch_n), 'cuda' if (self._cuda and t.cuda.is_available()) else None)
+        ckp = t.load('checkpoint_{:03d}.ckp'.format(epoch_n), 'cuda' if (self._cuda and t.cuda.is_available()) else 'cpu')
         self._model.load_state_dict(ckp['state_dict'])
         
     def save_onnx(self, fn):
@@ -47,6 +55,25 @@ class Trainer:
               output_names = ['output'], # the model's output names
               dynamic_axes={'input' : {0 : 'batch_size'},    # variable lenght axes
                             'output' : {0 : 'batch_size'}})
+        
+    def modify_Linear(self, lr=None, wd=None, out_features=0):
+        if out_features>0:
+            #self._model.fc = t.nn.Sequential(t.nn.Dropout(p=0.5), t.nn.Linear(512,out_features), t.nn.ReLU(inplace=True), t.nn.Dropout(p=0.5), t.nn.Linear(out_features,out_features), t.nn.ReLU(inplace=True), t.nn.Linear(out_features, 2))
+            #self._model.add_module('relu_out',t.nn.ReLU(inplace=True))
+            '''for param in self._model.layer4.parameters():
+                print(param)'''
+            for param in self._model.parameters():
+                param.requires_grad = False
+            '''for param in self._model.fc.parameters():
+                param.requires_grad = True'''
+            #self._optim=t.optim.Adam(self._model.fc.parameters(),lr=lr,weight_decay=wd)
+            self._optim=t.optim.SGD(self._model.parameters(), lr=lr, momentum=0.9, weight_decay=wd)
+            '''for param in self._model.layer4.parameters():
+                print(param)'''
+            '''for name,layer in self._model.named_children():
+                print(name,layer)'''
+        else:
+            self._model.add_module('sigmoid',t.nn.Sigmoid())
             
     def train_step(self, x, y):
         # perform following steps:
@@ -54,8 +81,9 @@ class Trainer:
         self._optim.zero_grad()
         # -propagate through the network
         pred = self._model(x)
+        #pred = t.sigmoid(self._model(x))
         # -calculate the loss
-        loss = self._crit(pred, y.float())
+        loss = self._train_crit(pred, y.float())
         # -compute gradient by backward propagation
         loss.backward()
         # -update weights
@@ -70,13 +98,14 @@ class Trainer:
         
         # predict
         pred = self._model(x)
+        #pred = t.sigmoid(self._model(x))
         # propagate through the network and calculate the loss and predictions
-        loss = self._crit(pred, y.float())
+        loss = self._val_crit(pred, y.float()) if self._val_crit is not None else self._train_crit(pred, y.float())
         # return the loss and the predictions
         return loss.item(), pred
         #TODO
         
-    def train_epoch(self,L1factor=0):
+    def train_epoch(self):
         # set training mode
         self._model = self._model.train()
         # iterate through the training set
@@ -90,12 +119,6 @@ class Trainer:
                 img = img.to('cpu')
                 label = label.to('cpu')
         # perform a training step
-            if(L1factor!=0):
-                l1_reg = t.nn.L1Loss(reduction='sum')
-                reg_loss = 0
-                for param in self._model.parameters():
-                    reg_loss += l1_reg(param,target=t.zeros_like(param))
-                loss += L1factor * reg_loss
             loss = loss + self.train_step(x=img, y=label)        
         # calculate the average loss for the epoch and return it
         avg_loss = loss / len(self._train_dl)
@@ -109,7 +132,7 @@ class Trainer:
         with t.no_grad():
             total_loss = 0
             preds = None
-            labels = None 
+            labels = None
             # iterate through the validation set
             for img, label in self._val_test_dl:
             # transfer the batch to the gpu if given
@@ -121,6 +144,8 @@ class Trainer:
                     label = label.to('cpu')
             # perform a validation step
                 loss, pred = self.val_test_step(img, label)
+                pred=t.sigmoid(pred).round()   #when BCEwithLogitsLoss is used
+                #pred = pred.round()
                 total_loss = total_loss + loss
             # save the predictions and the labels for each batch
                 if preds is None and labels is None:
@@ -131,14 +156,57 @@ class Trainer:
                     preds = t.cat((preds, pred), dim=0)
             # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
             avg_loss=total_loss / len(self._val_test_dl)
-            self.f1_score = f1_score(t.squeeze(labels.cpu()), t.squeeze(preds.cpu().round()), average='weighted')
-            print("F1 score={},Val_loss={}".format(self.f1_score,avg_loss))
+            F1_crack = f1_score(labels[:, 0].cpu(), preds[:, 0].cpu(), average='binary')
+            F1_inactive = f1_score(labels[:, 1].cpu(), preds[:, 1].cpu(), average='binary')
+            F1_mean = (F1_crack + F1_inactive) / 2
+            self.f1_score=F1_mean
+
             # return the loss and print the calculated metrics
+            if self._schedlr is not None:
+                #self._schedlr.step()
+                #self._schedlr.step(avg_loss) #to be used when ReduceLRonPlateau is scheduler
+                for s in self._schedlr[:-1]:   #to be used when multiple scheduler
+                    s.step()
+                self._schedlr[-1].step(avg_loss)
+            print("F1_Crack={},F1_inactive={},F1_mean={}".format(F1_crack,F1_inactive,F1_mean))
             return avg_loss
         #TODO
+
+    def visualize_output(self,x,y):
+        import matplotlib.pyplot as plt
+        import numpy as np
+        self._model = self._model.eval()
+        # Attach hooks to conv layers
+        activations = {}
+        def get_activation(name):
+            def conv_hook(model, input, output):
+                # Remove batch dimension (=1) and calculate mean of feature maps along the channel dimension
+                activations[name] = output.detach().squeeze(0).mean(0).numpy()
+            return conv_hook
+
+        for module in self._model.modules():
+            if isinstance(module, t.nn.Conv2d):
+                module.register_forward_hook(get_activation(f"Conv {module.in_channels}, {module.out_channels}"))
+        x = np.expand_dims(x, axis=0)
+        x=t.tensor(x)
+        pred = self._model(x)
+        loss = self._train_crit(pred[0], y.float())
+        loss.backward()
+        # Plot activations
+        fig = plt.figure(figsize=(30, 50))
+        for i, (name, feature_map) in enumerate(activations.items()):
+            a = fig.add_subplot(7, 7, i+1)
+            plt.imshow(feature_map)
+            a.axis("off")
+            a.set_title(name, fontsize=30)
+        plt.savefig('feature_maps.png', bbox_inches='tight')
+        print("Label=",y)
+        pred = t.sigmoid(self._model(x))[0]
+        print("Pred=",pred)
+
         
     
-    def fit(self, epochs=-1, L1factor=0):
+    def fit(self, epochs=-1):
         assert self._early_stopping_patience > 0 or epochs > 0
         # create a list for the train and validation losses, and create a counter for the epoch 
         train_losses = []
@@ -157,23 +225,7 @@ class Trainer:
                 break
             # train for a epoch and then calculate the loss and metrics on the validation set
             epoch_cntr += 1
-            lr,weight_decay=(self._optim.state_dict()['param_groups'][0]['lr'],self._optim.state_dict()['param_groups'][0]['weight_decay'])
-            if epoch_cntr==1:
-                lr*=10
-                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
-            elif epoch_cntr==10:
-                lr*=0.1
-                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
-            elif epoch_cntr==60:
-                lr*=0.9
-                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
-            elif epoch_cntr==85:
-                lr*=0.8
-                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
-            elif epoch_cntr==105:
-                lr*=0.7
-                self._optim=t.optim.Adam(self._model.parameters(),lr=lr,weight_decay=weight_decay)
-            train_loss = self.train_epoch(L1factor=L1factor)
+            train_loss = self.train_epoch()
             val_loss = self.val_test()
             # append the losses to the respective lists
             train_losses.append(train_loss)
@@ -188,8 +240,9 @@ class Trainer:
                 patience_cntr=0
                 f1_max=self.f1_score
                 val_loss_min=val_loss
-            elif (len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]):
+            elif ((len(val_losses) >1 and val_loss > 1.02 * val_losses[-2]) or (self.f1_score<f1_max)):
                 patience_cntr += 1
+            print("Train_loss={},Val_loss={}".format(train_loss,val_loss))
             print("Epoch counter={},Patience counter={},f1_max={}\n".format(epoch_cntr,patience_cntr,f1_max))
             # check whether early stopping should be performed using the early stopping criterion and stop if so
             if epoch_cntr==epochs or (self._early_stopping_patience>0 and patience_cntr==self._early_stopping_patience):

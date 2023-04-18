@@ -8,4 +8,11 @@ exercise1_material/log.txt
 exercise2_material/log.txt
 exercise3_material/log.txt
 exercise3_material/src_to_implement/log.txt
-exercise4_material/src_to_implement/checkpoints
+exercise4_material
+exercise4_material/src_to_implement
+exercise4_material/src_to_implement/data.py
+exercise4_material/src_to_implement/export_onnx.py
+exercise4_material/src_to_implement/model.py
+exercise4_material/src_to_implement/train.py
+exercise4_material/src_to_implement/trainer.py
+exercise4_material/checkpoint_imp
